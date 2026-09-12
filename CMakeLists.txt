@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.16)
+project(wal_kv LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-Wall -Wextra -O2)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+add_executable(kv_cli src/cli.cpp src/wal.cpp src/store.cpp)
+add_executable(kv_demo src/demo.cpp src/wal.cpp src/store.cpp)
