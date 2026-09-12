@@ -10,10 +10,9 @@ namespace fs = std::filesystem;
 Store::Store(std::string dir)
     : dir_(std::move(dir)),
       snap_path_(dir_ + "/snapshot.bin"),
-      wal_path_(dir_ + "/wal.bin"),
-      wal_(wal_path_) {
+      wal_path_(dir_ + "/wal.bin") {
   fs::create_directories(dir_);
-  // Wal ctor opened the file; reopen after possible first create_directories.
+  wal_ = std::make_unique<Wal>(wal_path_);
   load();
 }
 
@@ -53,16 +52,16 @@ void Store::load() {
 void Store::put(std::string key, std::string value) {
   std::lock_guard<std::mutex> g(mu_);
   Record r{Op::Put, key, value};
-  wal_.append(r);
-  wal_.flush();
+  wal_->append(r);
+  wal_->flush();
   mem_[std::move(key)] = std::move(value);
 }
 
 void Store::del(const std::string& key) {
   std::lock_guard<std::mutex> g(mu_);
   Record r{Op::Del, key, {}};
-  wal_.append(r);
-  wal_.flush();
+  wal_->append(r);
+  wal_->flush();
   mem_.erase(key);
 }
 
@@ -94,11 +93,11 @@ void Store::write_snapshot_unlocked() {
 void Store::compact() {
   std::lock_guard<std::mutex> g(mu_);
   write_snapshot_unlocked();
-  wal_.close();
+  wal_->close();
   {
     std::ofstream trunc(wal_path_, std::ios::binary | std::ios::trunc);
   }
-  wal_ = Wal(wal_path_);
+  wal_ = std::make_unique<Wal>(wal_path_);
 }
 
 std::size_t Store::size() const {

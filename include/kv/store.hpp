@@ -3,6 +3,7 @@
 #include "kv/wal.hpp"
 
 #include <map>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -17,10 +18,7 @@ class Store {
   void put(std::string key, std::string value);
   void del(const std::string& key);
   std::optional<std::string> get(const std::string& key) const;
-
-  // Rewrite snapshot + truncate WAL. Safe to call anytime.
   void compact();
-
   std::size_t size() const;
   const std::string& dir() const { return dir_; }
 
@@ -33,7 +31,7 @@ class Store {
   std::string wal_path_;
   mutable std::mutex mu_;
   std::map<std::string, std::string> mem_;
-  Wal wal_;
+  std::unique_ptr<Wal> wal_;
 };
 
 }  // namespace kv
